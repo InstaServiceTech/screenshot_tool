@@ -1,0 +1,45 @@
+name: Build and Deploy Docker Image
+on:
+  workflow_dispatch:
+
+jobs:
+  build-push-deploy:
+    name: Build, Push, and Deploy
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: ${{ secrets.PROJECT_ID }}
+      GCE_INSTANCE_IP: ${{ secrets.GCE_INSTANCE_IP }}
+      VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Extract branch name
+        id: extract_branch
+        run: echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_ENV
+
+      - name: Build and Deploy Screenshot Tool Image on Dev Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.GCE_INSTANCE_IP }}
+          username: insta-tech
+          key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            set -e #Exit if command fails
+            set -x
+
+            cd screenshot_tool
+            git fetch origin
+            git checkout ${{ env.BRANCH_NAME }}
+            git pull origin ${{ env.BRANCH_NAME }}
+
+            # docker build with BuildKit for faster caching
+            sudo DOCKER_BUILDKIT=1 docker build -t screenshot-tool .
+            if sudo docker ps --all --format "{{.Names}}" | grep -q "^screenshot-tool-container\$"; then
+                sudo docker stop screenshot-tool-container || true
+                sudo docker rm -f screenshot-tool-container || true
+            fi
+
+            # Run the new container
+            echo "Starting a new container..."
+            sudo docker run -d --name screenshot-tool-container --restart=always -p 5006:5000 -v screenshot-runs:/opt/screenshot-tool/app/runs screenshot-tool
+
+  
