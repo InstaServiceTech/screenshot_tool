@@ -18,7 +18,8 @@
       <a class="btn secondary" href="{{ url_for('api_history', user=user_filter) }}">JSON API</a>
     </form>
     {% if not runs %}
-      <p class="muted">No runs yet.</p>
+      <p class="muted">No runs yet. Generate screenshots (Excel or Manual) while signed in,
+        then come back here. Batches from before login may show as <b>unknown</b>.</p>
     {% else %}
       <div class="scroll">
         <table>
