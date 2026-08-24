@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block body %}
+  <div class="card">
+    <h3 style="margin-top:0">Done &mdash; {{ count }} screenshot(s) in {{ cities }} city folder(s)</h3>
+    <a class="btn" href="{{ url_for('download', run_id=run_id) }}">Download ZIP</a>
+    <a class="btn secondary" href="{{ url_for('index') }}">Start over</a>
+  </div>
+  {% for city, shots in by_city.items() %}
+    <div class="cityhdr">{{ city }} <span class="muted">({{ shots|length }})</span></div>
+    <div class="grid">
+      {% for s in shots %}
+        <div class="shot">
+          <img loading="lazy" src="{{ url_for('img', run_id=run_id, relpath=s.rel) }}" alt="{{ s.file }}">
+          <div class="cap">{{ s.file }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+{% endblock %}

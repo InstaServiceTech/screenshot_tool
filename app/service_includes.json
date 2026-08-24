@@ -1,0 +1,117 @@
+{
+  "_comment": "Service Includes per service, extracted verbatim from the app's includesExcludesData (TestServiceDetails.tsx). Keyed by the service name (matched case-insensitively against the Excel ServiceName, ignoring any '* ...' suffix). Add new services here. Unknown services use _default.",
+  "Interior Paint Touch-Ups": [
+    "Exact color matching to existing wall paint",
+    "Touch-up of minor scuffs, marks, and chips",
+    "Application of high-quality interior paint",
+    "Quick and clean service, with minimal disruption to your space"
+  ],
+  "General Handyman Service": [
+    "General home maintenance and repairs",
+    "Furniture assembly",
+    "Paint touch-ups",
+    "Carpentry and woodworking",
+    "Drywall repair",
+    "Curtain rod mounting",
+    "Minor plumbing repairs"
+  ],
+  "Furniture Assembly": [
+    "Assemble and install furniture pieces",
+    "Use of necessary tools for assembly",
+    "Basic inspection to ensure all assembled furniture is sturdy and functional"
+  ],
+  "TV Mounting Service": [
+    "Consultation to determine the best placement for the TV",
+    "Mounting of one standard TV mount bracket",
+    "Securing the TV to the mount and ensuring stability",
+    "Basic cable management to keep installation neat"
+  ],
+  "Leak Repairs": [
+    "Detection and diagnosis of leaks",
+    "Repairing leaks in plumbing, roofs, and walls",
+    "Sealing and waterproofing affected areas",
+    "Testing to ensure repairs are effective"
+  ],
+  "Water Filter Installation": [
+    "Assessment of the installation area.",
+    "Installation of one water filtration unit.",
+    "Connection of the filter to existing plumbing.",
+    "Testing of the filter to ensure functionality.",
+    "Basic demonstration of the filter's features.",
+    "Cleanup of the installation site."
+  ],
+  "Bathtub clogging": [
+    "Inspection of bathtub drain and overflow.",
+    "Clearing blockages using a plunger or plumber's snake.",
+    "Minor adjustments to the bathtub's plumbing fixtures.",
+    "Testing the flow of water after unclogging.",
+    "Basic cleanup of the work area."
+  ],
+  "Complete Shower System Replacement": [
+    "Removal of the old shower head, handles, and related plumbing fixtures.",
+    "Installation of new shower head, handles, taps, and necessary fixtures.",
+    "Connection of water supply lines to the new fixtures.",
+    "Basic water pressure and leak testing of the newly installed components.",
+    "Cleanup of the installation area post service."
+  ],
+  "Sink Clogging": [
+    "Initial assessment of the sink and drainage system",
+    "Clearing blockages in the sink drain",
+    "Use of professional-grade drain cleaning tools and agents",
+    "Testing of the sink post-service to ensure proper drainage",
+    "Basic maintenance tips for preventing future clogs"
+  ],
+  "Toilet Repair Service": [
+    "Identifying/repairing common problems",
+    "Leaking",
+    "Clogged toilets",
+    "Toilet flush repair"
+  ],
+  "General Plumbing Services": [
+    "Diagnosis of plumbing issues (leaks, clogs, noise, pressure)",
+    "Minor pipe repairs or tightening",
+    "Toilet, faucet, or shower head adjustments",
+    "Clearing slow drains (non-sewer line)",
+    "Basic fixture replacements (provided by customer)",
+    "Water pressure adjustments",
+    "Caulking or sealing around fixtures",
+    "Drain cleaning service",
+    "Dishwasher drain cleaning",
+    "Recaulk bathtub",
+    "Bathtub faucet repair & replacement",
+    "Outdoor faucet repair"
+  ],
+  "Faucet replacement": [
+    "Removal of old faucet (kitchen or bathroom)",
+    "Installation of customer-supplied new faucet",
+    "Connection to existing water supply lines",
+    "Leak testing and functionality check",
+    "Clean-up of work area"
+  ],
+  "Water Filter Replacement": [
+    "Assessment of the current filter's condition and system requirements.",
+    "Removal of the old water filter.",
+    "Installation of a new, compatible water filter (with extra charge for parts)",
+    "Testing of the system post-installation to ensure proper functioning.",
+    "Brief tutorial on how to maintain and when to change the filter."
+  ],
+  "_default": [
+    "Professional, vetted service pro",
+    "Upfront pricing",
+    "Satisfaction guaranteed"
+  ],
+  "General Plumbing Service": [
+    "Diagnosis of plumbing issues (leaks, clogs, noise, pressure)",
+    "Minor pipe repairs or tightening",
+    "Toilet, faucet, or shower head adjustments",
+    "Clearing slow drains (non-sewer line)",
+    "Basic fixture replacements (provided by customer)",
+    "Water pressure adjustments",
+    "Caulking or sealing around fixtures",
+    "Drain cleaning service",
+    "Dishwasher drain cleaning",
+    "Recaulk bathtub",
+    "Bathtub faucet repair & replacement",
+    "Outdoor faucet repair"
+  ]
+}

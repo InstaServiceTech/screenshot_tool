@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block body %}
+  <div class="card">
+    <h3 style="margin-top:0">Screenshot generated</h3>
+    <p class="muted">Saved as <code>screenshots/{{ city }}/{{ file }}</code></p>
+    <a class="btn" href="{{ url_for('download', run_id=run_id) }}">Download ZIP</a>
+    <a class="btn secondary" href="{{ url_for('index') }}">Back</a>
+  </div>
+  <div class="card" style="max-width:440px">
+    <img style="width:100%;border:1px solid var(--line);border-radius:10px"
+         src="{{ url_for('img', run_id=run_id, relpath=rel) }}" alt="{{ file }}">
+  </div>
+{% endblock %}
