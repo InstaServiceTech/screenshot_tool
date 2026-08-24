@@ -9,9 +9,12 @@
   * { box-sizing: border-box; }
   body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
          color:var(--ink); background:var(--bg); }
-  header { background:#fff; border-bottom:1px solid var(--line); padding:16px 24px; }
+  header { background:#fff; border-bottom:1px solid var(--line); padding:16px 24px;
+           display:flex; align-items:center; justify-content:space-between; gap:16px; }
   header h1 { margin:0; font-size:18px; }
   header .sub { color:var(--muted); font-size:13px; margin-top:2px; }
+  header .who { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:12px; flex-shrink:0; }
+  header .who b { color:var(--ink); }
   .wrap { max-width:960px; margin:24px auto; padding:0 20px; }
   .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px; margin-bottom:20px; }
   .tabs { display:flex; gap:8px; margin-bottom:16px; }
@@ -44,8 +47,17 @@
 </head>
 <body>
 <header>
-  <h1>InstaService Screenshot Tool</h1>
-  <div class="sub">Excel &rarr; Service Information screenshots by city &rarr; ZIP. No emulator required.</div>
+  <div>
+    <h1>InstaService Screenshot Tool</h1>
+    <div class="sub">Excel &rarr; Service Information screenshots by city &rarr; ZIP. No emulator required.</div>
+  </div>
+  {% if current_user %}
+  <div class="who">
+    Signed in as <b>{{ current_user }}</b>
+    <a href="{{ url_for('history') }}">History</a>
+    <a href="{{ url_for('logout') }}">Log out</a>
+  </div>
+  {% endif %}
 </header>
 <div class="wrap">
   {% block body %}{% endblock %}

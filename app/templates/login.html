@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Sign in — Screenshot Tool{% endblock %}
+{% block body %}
+  <div class="card" style="max-width:420px;margin:40px auto">
+    <h3 style="margin-top:0">Sign in</h3>
+    <p class="muted">Use your InstaService username so we can record who generated each screenshot batch.</p>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form action="{{ url_for('login') }}" method="post">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label>Username</label>
+      <input type="text" name="username" autocomplete="username" required autofocus>
+      <label>Password</label>
+      <input type="password" name="password" autocomplete="current-password" required>
+      <div style="margin-top:16px"><button class="btn" type="submit">Sign in</button></div>
+    </form>
+  </div>
+{% endblock %}

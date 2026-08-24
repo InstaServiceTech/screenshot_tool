@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Run history — Screenshot Tool{% endblock %}
+{% block body %}
+  <div class="card">
+    <h3 style="margin-top:0">Who generated screenshots</h3>
+    <p class="muted">Each Excel or manual run is tagged with the signed-in user.</p>
+    {% if not runs %}
+      <p class="muted">No runs yet.</p>
+    {% else %}
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>When (UTC)</th>
+              <th>User</th>
+              <th>Type</th>
+              <th>Count</th>
+              <th>Detail</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in runs %}
+              <tr>
+                <td>{{ r.created_at }}</td>
+                <td><b>{{ r.user }}</b></td>
+                <td>{{ r.kind }}</td>
+                <td>{{ r.count }}</td>
+                <td>{{ r.detail }}</td>
+                <td>
+                  {% if r.has_zip %}
+                    <a href="{{ url_for('download', run_id=r.run_id) }}">ZIP</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
