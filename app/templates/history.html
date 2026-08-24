@@ -3,7 +3,20 @@
 {% block body %}
   <div class="card">
     <h3 style="margin-top:0">Who generated screenshots</h3>
-    <p class="muted">Each Excel or manual run is tagged with the signed-in user.</p>
+    <p class="muted">Backend log of every Excel and manual run, tagged with the signed-in user.</p>
+    <form method="get" action="{{ url_for('history') }}" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:12px 0 16px">
+      <div>
+        <label>Filter by user</label>
+        <select name="user" onchange="this.form.submit()" style="padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px">
+          <option value="">All users</option>
+          {% for u in users %}
+            <option value="{{ u }}" {% if user_filter == u %}selected{% endif %}>{{ u }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <a class="btn secondary" href="{{ url_for('history_csv', user=user_filter) }}">Download CSV</a>
+      <a class="btn secondary" href="{{ url_for('api_history', user=user_filter) }}">JSON API</a>
+    </form>
     {% if not runs %}
       <p class="muted">No runs yet.</p>
     {% else %}
@@ -16,6 +29,7 @@
               <th>Type</th>
               <th>Count</th>
               <th>Detail</th>
+              <th>IP</th>
               <th></th>
             </tr>
           </thead>
@@ -27,6 +41,7 @@
                 <td>{{ r.kind }}</td>
                 <td>{{ r.count }}</td>
                 <td>{{ r.detail }}</td>
+                <td class="muted">{{ r.ip }}</td>
                 <td>
                   {% if r.has_zip %}
                     <a href="{{ url_for('download', run_id=r.run_id) }}">ZIP</a>

@@ -11,6 +11,8 @@ Flows:
 """
 from __future__ import annotations
 
+import csv
+import io
 import json
 import os
 import secrets
@@ -19,7 +21,7 @@ import uuid
 import zipfile
 from datetime import datetime, timedelta, timezone
 
-from flask import (Flask, abort, redirect, render_template, request,
+from flask import (Flask, Response, abort, jsonify, redirect, render_template, request,
                    send_file, session, url_for)
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
@@ -86,10 +88,23 @@ def _run_dir(run_id: str) -> str:
     return d
 
 
-def _write_meta(rd: str, **fields) -> None:
+def _client_ip() -> str:
+    fwd = (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+    return fwd or (request.remote_addr or "")
+
+
+def _append_audit(payload: dict) -> None:
+    path = os.path.join(RUNS_DIR, "audit.jsonl")
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+
+
+def _write_meta(rd: str, run_id: str, **fields) -> None:
     payload = {
+        "run_id": run_id,
         "user": current_user() or "unknown",
         "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "ip": _client_ip(),
         **fields,
     }
     with open(os.path.join(rd, "meta.json"), "w", encoding="utf-8") as f:
@@ -101,6 +116,9 @@ def _write_meta(rd: str, **fields) -> None:
             f.write(f"Type: {payload['kind']}\n")
         if payload.get("count") is not None:
             f.write(f"Screenshots: {payload['count']}\n")
+        if payload.get("ip"):
+            f.write(f"IP: {payload['ip']}\n")
+    _append_audit(payload)
 
 
 def _read_meta(rd: str) -> dict:
@@ -170,9 +188,7 @@ def index():
                            default_time=DEFAULT_BOOKING_TIME)
 
 
-# ── History ───────────────────────────────────────────────────────────────────
-@app.get("/history")
-def history():
+def _list_runs(user_filter: str = "") -> list[dict]:
     runs = []
     if os.path.isdir(RUNS_DIR):
         for name in os.listdir(RUNS_DIR):
@@ -182,17 +198,53 @@ def history():
             meta = _read_meta(rd)
             if not meta:
                 continue
+            user = str(meta.get("user", "unknown"))
+            if user_filter and user.lower() != user_filter.lower():
+                continue
             runs.append({
                 "run_id": name,
-                "user": meta.get("user", "unknown"),
+                "user": user,
                 "created_at": meta.get("created_at", ""),
                 "kind": meta.get("kind", ""),
                 "count": meta.get("count", ""),
                 "detail": meta.get("detail", ""),
+                "ip": meta.get("ip", ""),
                 "has_zip": os.path.isfile(os.path.join(rd, "screenshots.zip")),
             })
     runs.sort(key=lambda r: r["created_at"], reverse=True)
-    return render_template("history.html", runs=runs)
+    return runs
+
+
+# ── History ───────────────────────────────────────────────────────────────────
+@app.get("/history")
+def history():
+    user_filter = request.args.get("user", "").strip()
+    runs = _list_runs(user_filter)
+    users = sorted({r["user"] for r in _list_runs()})
+    return render_template("history.html", runs=runs, users=users,
+                           user_filter=user_filter)
+
+
+@app.get("/api/history")
+def api_history():
+    user_filter = request.args.get("user", "").strip()
+    return jsonify({"runs": _list_runs(user_filter)})
+
+
+@app.get("/history.csv")
+def history_csv():
+    user_filter = request.args.get("user", "").strip()
+    rows = _list_runs(user_filter)
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=["created_at", "user", "kind", "count", "detail", "ip", "run_id"])
+    w.writeheader()
+    for r in rows:
+        w.writerow({k: r.get(k, "") for k in w.fieldnames})
+    return Response(
+        buf.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=screenshot-history.csv"},
+    )
 
 
 # ── Excel upload -> preview ───────────────────────────────────────────────────
@@ -279,6 +331,7 @@ def generate(run_id):
     user = current_user() or "unknown"
     _write_meta(
         rd,
+        run_id,
         kind="excel",
         count=len(results),
         detail=os.path.basename(xlsx),
@@ -336,6 +389,7 @@ def manual():
     user = current_user() or "unknown"
     _write_meta(
         rd,
+        run_id,
         kind="manual",
         count=1,
         detail=f"{fname} ({safe_folder(city)})",
