@@ -45,6 +45,7 @@ jobs:
             secret = os.environ.get("SECRET_KEY") or ""
             users = os.environ.get("AUTH_USERS") or ""
             with open(".env", "w", encoding="utf-8") as f:
+                f.write("ENVIRONMENT=production\n")
                 f.write("SECRET_KEY=" + secret + "\n")
                 f.write("AUTH_USERS=" + users + "\n")
             os.chmod(".env", 0o600)

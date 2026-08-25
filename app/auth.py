@@ -82,6 +82,9 @@ def load_users() -> dict[str, str]:
     for path in _users_file_paths():
         if os.path.isfile(path):
             users.update(_load_json_users(path))
+    # Local (./run.sh or docker without AUTH_USERS). Hosting sets ENVIRONMENT=production.
+    if not users and os.environ.get("ENVIRONMENT", "").lower() != "production":
+        users = {"user": "user"}
     return users
 
 
