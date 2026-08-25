@@ -17,7 +17,7 @@ File naming matches the original tool exactly: the name is the part of
 `ServiceName` **before `*`** (e.g. `General Handyman Service * 3 hours job` →
 `General Handyman Service.png`).
 
-## Run it
+## Run it locally
 
 ```bash
 # macOS / Linux
@@ -26,32 +26,12 @@ File naming matches the original tool exactly: the name is the part of
 run.bat
 ```
 
-Then open <http://127.0.0.1:5000>.
+Then open <http://127.0.0.1:5000>. Local `.env` defaults to `user` / `user`
+(only on your machine; not used on the hosted site).
 
 On macOS, port 5000 is often taken by AirPlay Receiver. Disable it in
-**System Settings → General → AirPlay & Continuity**, or map Docker to another
+**System Settings → General → AirPlay & Continuity**, or use Docker on another
 host port (see below).
-
-### Docker
-
-```bash
-docker compose up --build
-```
-
-Then open <http://127.0.0.1:5000>. If that port is busy:
-
-```bash
-HOST_PORT=8000 docker compose up --build
-```
-
-and open <http://127.0.0.1:8000>.
-
-Without Compose:
-
-```bash
-docker build -t screenshot-tool .
-docker run --rm -p 8000:5000 screenshot-tool
-```
 
 Manual setup instead of the scripts:
 
@@ -60,6 +40,106 @@ python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\act
 pip install -r requirements.txt
 cd app && python app.py
 ```
+
+## Docker
+
+Compose is not required. Build and run from the Dockerfile:
+
+```bash
+docker build -t screenshot-tool .
+docker run -d --name screenshot-tool-container --restart=always \
+  -p 8000:5000 \
+  -v screenshot-runs:/opt/screenshot-tool/app/runs \
+  --env-file .env \
+  screenshot-tool
+```
+
+Then open <http://127.0.0.1:8000>.
+
+`-p 8000:5000` maps host port **8000** to the app port **5000** inside the
+container. Use `5000:5000` if 5000 is free on the host.
+
+`-v screenshot-runs:/opt/screenshot-tool/app/runs` persists uploaded Excel files,
+generated PNGs, and ZIPs. Data survives container restarts and redeploys. It is
+lost only if you delete the volume (`docker volume rm screenshot-runs`) or the
+machine.
+
+Stop / start:
+
+```bash
+docker stop screenshot-tool-container
+docker start screenshot-tool-container
+docker logs -f screenshot-tool-container
+```
+
+## Deploy (dev server)
+
+GitHub Actions workflow: `.github/workflows/dev-build-push-deploy.yml`
+(**Build and Deploy Docker Image**). Trigger it with **Run workflow**.
+
+On the VM it:
+
+1. Pulls the branch
+2. Builds `screenshot-tool`
+3. Recreates `screenshot-tool-container`
+
+```bash
+docker run -d --name screenshot-tool-container --restart=always \
+  -p 5006:5000 \
+  -v screenshot-runs:/opt/screenshot-tool/app/runs \
+  --env-file .env \
+  screenshot-tool
+```
+
+Public URL: **https://jobnotifications.instaservice.com** (login comes from
+GitHub secrets, not the local `user`/`user` default).
+
+Required GitHub secrets: `GCE_INSTANCE_IP`, `VM_SSH_PRIVATE_KEY`, `SECRET_KEY`,
+`AUTH_USERS` (comma-separated `name:password` for the real team).
+
+Dev URL: **http://\<GCE_INSTANCE_IP\>:5006/**
+
+GCP must allow inbound **TCP 5006** (SSH on 22 is not enough). Example:
+
+```bash
+gcloud compute firewall-rules create allow-screenshot-tool-5006 \
+  --direction=INGRESS \
+  --priority=1000 \
+  --network=default \
+  --action=ALLOW \
+  --rules=tcp:5006 \
+  --source-ranges=0.0.0.0/0
+```
+
+The VM must already have the repo cloned as `screenshot_tool` (the workflow
+does `cd screenshot_tool` then `git pull`).
+
+## Login and who generated what
+
+The tool is public on the internet, so **sign-in is required**. Every Excel or
+manual run is tagged with the signed-in username.
+
+- Shown on the results page and in the header
+- Listed under **History**
+- Written into `meta.json` and `GENERATED_BY.txt` (included in the ZIP)
+
+**Do not put passwords in git.** The hosted site does not use a default login.
+
+- **Local:** `./run.sh` writes a gitignored `.env` with `AUTH_USERS=user:user` if
+  none exists. That is only for http://127.0.0.1:5000.
+- **Host:** the GitHub workflow writes `screenshot_tool/.env` from secrets
+  `AUTH_USERS` and `SECRET_KEY`, then `docker run --env-file .env`. There is no
+  `user:user` fallback on [jobnotifications.instaservice.com](https://jobnotifications.instaservice.com/).
+
+Set repo secrets:
+
+```
+AUTH_USERS=sagar:PassOne,amit:PassTwo,neha:PassThree
+SECRET_KEY=a-long-random-string
+```
+
+`.env` is gitignored and dockerignored. Credentials are never placed in the
+public URL.
 
 ## Excel format
 
@@ -108,16 +188,19 @@ to `_default`. Cleaning services show their AddOn Q&A block instead of a checkli
 
 ```
 app/
-  app.py               Flask routes (upload / preview / generate / manual / download)
-  renderer.py          Pillow renderer — draws the Service Information screen
-  data.py              Excel parsing + ServiceRecord mapping
+  app.py                 Flask routes (upload / preview / generate / manual / download)
+  auth.py                login (hashed users.json)
+  set_user.py            add/update a user (writes a hash, not the password)
+  renderer.py            Pillow renderer — draws the Service Information screen
+  data.py                Excel parsing + ServiceRecord mapping
   service_includes.json  editable Service Includes per service
-  templates/           UI (upload + manual tabs, preview, results)
-  runs/                per-run output (screenshots + zip); safe to delete
+  templates/             UI (login, upload + manual tabs, preview, results, history)
+  runs/                  per-run output (screenshots + zip + who generated it)
+.github/workflows/       deploy to the dev GCE VM
+Dockerfile
 requirements.txt
 run.sh / run.bat
-Dockerfile / docker-compose.yml
-samples/               example Excel + example renders
+samples/                 example Excel + example renders
 ```
 
 ## Notes
@@ -126,3 +209,4 @@ samples/               example Excel + example renders
 - The renderer uses DejaVu Sans (bundled on most systems). To match your brand
   font, point `_REG`/`_BOLD` in `renderer.py` at your `.ttf` files.
 - `app/runs/` accumulates outputs; delete it anytime to reclaim space.
+- Docker named volume `screenshot-runs` is the production copy of `app/runs/`.

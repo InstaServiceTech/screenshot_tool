@@ -5,50 +5,101 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Screenshot Tool{% endblock %}</title>
 <style>
-  :root { --red:#d61e2c; --ink:#1a2130; --muted:#6b7280; --line:#e5e7eb; --bg:#f6f7f9; --cream:#fff8e0; }
+  :root { --red:#d61e2c; --ink:#1a2130; --muted:#6b7280; --line:#e5e7eb; --bg:#f3f4f7; --cream:#fff8e0; }
   * { box-sizing: border-box; }
   body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-         color:var(--ink); background:var(--bg); }
-  header { background:#fff; border-bottom:1px solid var(--line); padding:16px 24px; }
-  header h1 { margin:0; font-size:18px; }
-  header .sub { color:var(--muted); font-size:13px; margin-top:2px; }
-  .wrap { max-width:960px; margin:24px auto; padding:0 20px; }
-  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px; margin-bottom:20px; }
-  .tabs { display:flex; gap:8px; margin-bottom:16px; }
-  .tab { padding:10px 16px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; font-size:14px; }
-  .tab.active { background:var(--red); color:#fff; border-color:var(--red); }
-  label { display:block; font-size:13px; color:var(--muted); margin:12px 0 4px; }
-  input[type=text], textarea, input[type=file] { width:100%; padding:10px 12px; border:1px solid var(--line);
-         border-radius:8px; font-size:14px; font-family:inherit; }
+         color:var(--ink); background:
+           radial-gradient(1000px 420px at 0% -20%, rgba(214,30,44,.08), transparent 50%),
+           var(--bg); min-height:100vh; }
+  header { background:#1a2130; color:#fff; padding:14px 28px;
+           display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  header .brand { display:flex; align-items:center; gap:12px; }
+  header .mark { width:36px; height:36px; border-radius:10px; background:var(--red);
+         display:grid; place-items:center; font-weight:800; font-size:13px; letter-spacing:-.04em;
+         box-shadow:0 6px 16px rgba(214,30,44,.35); flex-shrink:0; }
+  header h1 { margin:0; font-size:16px; letter-spacing:-.02em; }
+  header .sub { color:rgba(255,255,255,.62); font-size:12px; margin-top:2px; }
+  header .who { font-size:13px; color:rgba(255,255,255,.78); display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  header .who b { color:#fff; }
+  header .who a { color:rgba(255,255,255,.78); text-decoration:none; padding:6px 10px; border-radius:8px; }
+  header .who a:hover { background:rgba(255,255,255,.08); color:#fff; }
+  header .avatar { width:28px; height:28px; border-radius:50%; background:rgba(214,30,44,.9);
+         display:grid; place-items:center; font-size:11px; font-weight:700; }
+  .wrap { max-width:880px; margin:28px auto 48px; padding:0 20px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:26px 26px 22px;
+          margin-bottom:20px; box-shadow:0 12px 40px rgba(26,33,48,.06); }
+  .card h3 { margin:0 0 8px; font-size:20px; letter-spacing:-.02em; }
+  .tabs { display:flex; gap:0; margin-bottom:16px; background:#fff; border:1px solid var(--line);
+          border-radius:12px; padding:4px; width:fit-content; box-shadow:0 8px 24px rgba(26,33,48,.04); }
+  .tab { padding:10px 18px; border:none; border-radius:9px; background:transparent; cursor:pointer;
+         font-size:14px; font-weight:600; color:var(--muted); }
+  .tab.active { background:var(--red); color:#fff; }
+  label { display:block; font-size:13px; color:var(--muted); margin:12px 0 4px; font-weight:600; }
+  input[type=text], input[type=password], input[type=date], input[type=time],
+  textarea, input[type=file], select { width:100%; padding:11px 12px; border:1px solid var(--line);
+         border-radius:10px; font-size:14px; font-family:inherit; background:#fff; color:var(--ink); }
+  input[type=text]:focus, input[type=password]:focus, input[type=date]:focus, input[type=time]:focus,
+  textarea:focus, select:focus { outline:none; border-color:var(--red); box-shadow:0 0 0 3px rgba(214,30,44,.12); }
   textarea { min-height:64px; resize:vertical; }
   .row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-  .btn { display:inline-block; background:var(--red); color:#fff; border:none; border-radius:8px;
+  .btn { display:inline-block; background:var(--red); color:#fff; border:none; border-radius:10px;
          padding:12px 20px; font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; }
+  .btn:hover { filter:brightness(1.05); }
+{% block extra_css %}{% endblock %}
   .btn.secondary { background:#fff; color:var(--ink); border:1px solid var(--line); }
   .btn:disabled { opacity:.5; cursor:not-allowed; }
-  .muted { color:var(--muted); font-size:13px; }
-  .error { background:#fdecec; color:#b3261e; border:1px solid #f5c2c0; padding:12px 14px; border-radius:8px; margin-bottom:16px; font-size:14px; }
+  .muted { color:var(--muted); font-size:13px; line-height:1.5; }
+  .error { background:#fdecec; color:#b3261e; border:1px solid #f5c2c0; padding:12px 14px; border-radius:10px; margin-bottom:16px; font-size:14px; }
   table { width:100%; border-collapse:collapse; font-size:13px; }
   th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
   th { color:var(--muted); font-weight:600; position:sticky; top:0; background:#fff; }
-  .scroll { max-height:340px; overflow:auto; border:1px solid var(--line); border-radius:8px; }
+  .scroll { max-height:340px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
-  .shot { border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; }
+  .shot { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; }
   .shot img { width:100%; display:block; }
   .shot .cap { padding:8px 10px; font-size:12px; color:var(--muted); border-top:1px solid var(--line); }
   .cityhdr { margin:22px 0 10px; font-size:15px; font-weight:700; }
-  .pill { display:inline-block; background:#eef1f5; color:var(--ink); border-radius:999px; padding:3px 10px; font-size:12px; margin:2px 4px 2px 0; }
-  .steps { color:var(--muted); font-size:13px; }
+  .pill { display:inline-block; background:#f3f4f6; color:#374151; border-radius:999px; padding:3px 10px;
+          font-size:12px; margin:2px 4px 2px 0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .steps { color:var(--muted); font-size:13px; line-height:1.5; }
   .hide { display:none; }
+  .drop { border:1.5px dashed #d1d5db; border-radius:12px; padding:22px 16px; text-align:center;
+          background:#fafbfc; cursor:pointer; transition:border-color .15s, background .15s; }
+  .drop:hover, .drop.drag { border-color:var(--red); background:#fff5f5; }
+  .drop strong { display:block; font-size:14px; margin-bottom:4px; }
+  .drop input[type=file] { display:none; }
+  .field-hint { font-size:12px; color:var(--muted); margin-top:6px; }
+  code { font-size:12px; background:#f3f4f6; padding:1px 6px; border-radius:6px; }
+  @media (max-width: 640px) {
+    header { flex-direction:column; align-items:flex-start; }
+    .row2 { grid-template-columns:1fr; }
+    .tabs { width:100%; }
+    .tab { flex:1; text-align:center; }
+  }
 </style>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
+{% block chrome %}
 <header>
-  <h1>InstaService Screenshot Tool</h1>
-  <div class="sub">Excel &rarr; Service Information screenshots by city &rarr; ZIP. No emulator required.</div>
+  <a href="{{ url_for('index') }}" class="brand" style="text-decoration:none;color:inherit">
+    <div class="mark">IS</div>
+    <div>
+      <h1>InstaService</h1>
+      <div class="sub">Job Notification Screenshot Tool</div>
+    </div>
+  </a>
+  {% if current_user %}
+  <div class="who">
+    <div class="avatar">{{ current_user[:1]|upper }}</div>
+    <span>Signed in as <b>{{ current_user }}</b></span>
+    <a href="{{ url_for('history') }}">History</a>
+    <a href="{{ url_for('logout') }}">Log out</a>
+  </div>
+  {% endif %}
 </header>
 <div class="wrap">
   {% block body %}{% endblock %}
 </div>
+{% endblock %}
 </body>
 </html>

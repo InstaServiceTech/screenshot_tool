@@ -1,0 +1,14 @@
+.venv
+.git
+.gitignore
+.env
+app/runs
+app/users.json
+app/__pycache__
+**/__pycache__
+*.pyc
+.DS_Store
+samples
+README.md
+run.sh
+run.bat

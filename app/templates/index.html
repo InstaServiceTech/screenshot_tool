@@ -7,27 +7,32 @@
     <div class="tab" id="tab-manual" onclick="showTab('manual')">Manual Entry</div>
   </div>
 
-  <!-- Excel upload -->
   <div class="card" id="panel-excel">
-    <h3 style="margin-top:0">Upload your service Excel</h3>
-    <p class="muted">Same pattern as <code>serviceDetails.xlsx</code>. Required columns:
+    <h3>Upload your service Excel</h3>
+    <p class="muted">Same pattern as <code>serviceDetails.xlsx</code>.</p>
+    <p class="muted" style="margin-top:10px"><b>Required</b><br>
       {% for c in required %}<span class="pill">{{ c }}</span>{% endfor %}
-      <br>Optional: <span class="pill">Category</span><span class="pill">BookingDateTime</span>
+    </p>
+    <p class="muted" style="margin-top:8px"><b>Optional</b><br>
+      <span class="pill">Category</span><span class="pill">BookingDateTime</span>
       <span class="pill">AddOn1..4</span><span class="pill">AddOn1Value..4Value</span>
     </p>
     <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
-      <label>Excel file (.xlsx)</label>
-      <input type="file" name="excel" accept=".xlsx,.xls" required>
-      <div style="margin-top:16px"><button class="btn" type="submit">Upload &amp; Preview</button></div>
+      <label class="drop" id="dropzone">
+        <input type="file" name="excel" id="excel" accept=".xlsx,.xls" required onchange="filePicked(this)">
+        <strong id="drop-title">Drop your .xlsx here, or click to browse</strong>
+        <span class="field-hint" id="drop-hint">Excel file · max 25 MB</span>
+      </label>
+      <div style="margin-top:18px"><button class="btn" type="submit">Upload &amp; Preview</button></div>
     </form>
-    <p class="steps" style="margin-top:14px">After upload you'll preview the rows, then click
+    <p class="steps" style="margin-top:16px">Next you’ll preview the rows, then click
       <b>Generate Screenshots</b>. Files are saved as
       <code>screenshots/&lt;City&gt;/&lt;ServiceName&gt;.png</code> and zipped for download.</p>
   </div>
 
-  <!-- Manual entry -->
   <div class="card hide" id="panel-manual">
-    <h3 style="margin-top:0">Enter one service manually</h3>
+    <h3>Enter one service manually</h3>
+    <p class="muted">Renders a single Service Information screenshot.</p>
     <form action="{{ url_for('manual') }}" method="post">
       <div class="row2">
         <div><label>Service Amount ($)</label><input type="text" name="amount" placeholder="148"></div>
@@ -43,12 +48,12 @@
       <input type="text" name="customer_name" placeholder="Asher N.">
       <label>Customer Instructions</label>
       <textarea name="customer_instructions" placeholder="Install cordless blinds for 3 windows..."></textarea>
-      <label>Booking Date &amp; Time <span class="muted">(today or later)</span></label>
+      <label>Booking Date &amp; Time <span class="muted" style="font-weight:400">(today or later)</span></label>
       <div class="row2">
         <input type="date" name="booking_date" value="{{ default_date }}" min="{{ min_date }}" required>
         <input type="time" name="booking_time" value="{{ default_time }}" required>
       </div>
-      <div style="margin-top:16px"><button class="btn" type="submit">Generate Screenshot</button></div>
+      <div style="margin-top:18px"><button class="btn" type="submit">Generate Screenshot</button></div>
     </form>
   </div>
 
@@ -59,5 +64,23 @@
     document.getElementById('tab-excel').classList.toggle('active', which==='excel');
     document.getElementById('tab-manual').classList.toggle('active', which==='manual');
   }
+  function filePicked(input){
+    var name = (input.files && input.files[0]) ? input.files[0].name : '';
+    document.getElementById('drop-title').textContent = name || 'Drop your .xlsx here, or click to browse';
+    document.getElementById('drop-hint').textContent = name ? 'Ready to upload' : 'Excel file · max 25 MB';
+  }
+  (function(){
+    var z = document.getElementById('dropzone');
+    var f = document.getElementById('excel');
+    ['dragenter','dragover'].forEach(function(ev){
+      z.addEventListener(ev, function(e){ e.preventDefault(); z.classList.add('drag'); });
+    });
+    ['dragleave','drop'].forEach(function(ev){
+      z.addEventListener(ev, function(e){ e.preventDefault(); z.classList.remove('drag'); });
+    });
+    z.addEventListener('drop', function(e){
+      if (e.dataTransfer.files.length) { f.files = e.dataTransfer.files; filePicked(f); }
+    });
+  })();
 </script>
 {% endblock %}

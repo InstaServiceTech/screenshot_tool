@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+app/runs/
+app/users.json
+.env
+*.pyc
