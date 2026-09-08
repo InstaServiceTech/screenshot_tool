@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import random
 from datetime import datetime, timedelta
 from typing import List, Tuple
 
@@ -45,6 +46,50 @@ def default_booking_date() -> str:
 
 
 DEFAULT_BOOKING_TIME = "10:30"
+
+# Excel batch: random half-hour slots from 9:00 AM through 3:00 PM (inclusive).
+BOOKING_SLOT_START_MINUTES = 9 * 60
+BOOKING_SLOT_END_MINUTES = 15 * 60
+BOOKING_SLOT_STEP_MINUTES = 30
+
+
+def booking_time_slots() -> List[str]:
+    """Half-hour clock times from 09:00 through 15:00."""
+    slots = []
+    minutes = BOOKING_SLOT_START_MINUTES
+    while minutes <= BOOKING_SLOT_END_MINUTES:
+        h, m = divmod(minutes, 60)
+        slots.append(f"{h:02d}:{m:02d}")
+        minutes += BOOKING_SLOT_STEP_MINUTES
+    return slots
+
+
+def staggered_booking_times(date_str: str, count: int) -> List[str]:
+    """
+    One booking datetime per row: shuffled 30-minute slots between 9 AM and 3 PM.
+    Extra rows wrap to the next day and start again at 9:00.
+    """
+    if count <= 0:
+        return []
+    date_str = (date_str or "").strip() or default_booking_date()
+    try:
+        day = datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        day = datetime.strptime(default_booking_date(), "%Y-%m-%d")
+
+    slots = booking_time_slots()
+    out: List[str] = []
+    remaining = count
+    while remaining > 0:
+        day_slots = slots[:]
+        random.shuffle(day_slots)
+        take = min(remaining, len(day_slots))
+        day_key = day.strftime("%Y-%m-%d")
+        for t in day_slots[:take]:
+            out.append(format_booking(day_key, t))
+        remaining -= take
+        day += timedelta(days=1)
+    return out
 
 
 def format_booking(date_str: str, time_str: str = DEFAULT_BOOKING_TIME) -> str:
