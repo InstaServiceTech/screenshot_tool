@@ -30,6 +30,8 @@ OPTIONAL_COLUMNS = [
     "Category", "BookingDateTime",
     "AddOn1", "AddOn1Value", "AddOn2", "AddOn2Value",
     "AddOn3", "AddOn3Value", "AddOn4", "AddOn4Value",
+    "AddOn5", "AddOn5Value", "AddOn6", "AddOn6Value",
+    "AddOn7", "AddOn7Value", "AddOn8", "AddOn8Value",
 ]
 
 DEFAULT_BOOKING = "Mon, Aug 24, 2026, 10:30 AM"
@@ -166,8 +168,17 @@ def _amount(v) -> str:
 
 
 def _addons(row) -> List[Tuple[str, str]]:
+    """Read AddOn1..AddOn12 (and any higher numbered pair present on the row)."""
     pairs = []
-    for i in (1, 2, 3, 4):
+    keys = set()
+    if hasattr(row, "index"):
+        keys = {str(c) for c in row.index}
+    elif hasattr(row, "keys"):
+        keys = {str(c) for c in row.keys()}
+    n = 12
+    while f"AddOn{n + 1}" in keys or f"AddOn{n + 1}Value" in keys:
+        n += 1
+    for i in range(1, n + 1):
         q = _clean(row.get(f"AddOn{i}"))
         a = _clean(row.get(f"AddOn{i}Value"))
         if a.endswith(".0"):

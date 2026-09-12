@@ -151,15 +151,6 @@ def _txt(d, x, y, s, font, fill):
     d.text((x - bb[0], y - bb[1]), s, font=font, fill=fill)
 
 
-def _txt_right(d, right, y, s, font, fill):
-    """Right-align so the ink's right edge lands on `right` (stays inside the box)."""
-    s = "" if s is None else str(s)
-    if not s:
-        return
-    bb = font.getbbox(s)
-    _txt(d, right - (bb[2] - bb[0]), y, s, font, fill)
-
-
 def _tw(d, s, f) -> float:
     return d.textlength("" if s is None else str(s), font=f)
 
@@ -464,78 +455,72 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
     y = card_y1 + P(107)
     _txt(d, PX0, y, "Details", f_details, C_NAVY)
     y += P(98)
-    _txt(d, P(45), y, "Customer", f_label, C_NAVY)
-    y += P(80)
+    _txt(d, P(45), y, "Customer:" if data.addons else "Customer", f_label, C_INCLUDE_TXT)
+    y += P(56)
     _txt(d, PX0, y, data.customer_name, f_value, C_NAVY)
-    y += P(84)
-    d.rectangle([PX0, y, PX1, y + P(3)], fill=C_LINE)
-    y += P(39)
-    _txt(d, P(45), y, "Customer Instructions", f_label, C_NAVY)
-    y += P(63)
-    for ln in instr_lines:
-        _txt(d, PX0, y, ln, f_instr, C_NAVY)
-        y += P(59)
+    y += P(52)
 
-    # ── Service box ──────────────────────────────────────────────
-    box_y0 = y + P(49)
-    BX0, BX1 = P(43), P(1036)
-    BIN_L, BIN_R = P(98), P(982)
-
-    yy = box_y0 + P(83)
-    for ln in _wrap(d, data.clean_service_name, f_service, BIN_R - BIN_L):
-        _txt(d, BIN_L, yy, ln, f_service, C_NAVY)
-        yy += P(66)
-    yy += P(48)
-    d.rectangle([BIN_L, yy, BIN_R, yy + P(3)], fill=C_CARD_DIVIDER)
-    yy += P(60)
-
-    if data.includes:
-        _txt(d, P(99), yy, "Service Includes", f_incl_h, C_NAVY)
-        yy += P(85)
-        rows = []
-        text_w = BIN_R - P(252) - P(20)
-        for item in data.includes:
-            lines = _wrap(d, item, f_incl, text_w)
-            rows.append((lines, len(lines) * P(55) + P(24)))
-        box_h = P(78) + sum(h for _, h in rows) + P(27) * (len(rows) - 1)
-        _rr(d, [P(97), yy, P(982), yy + box_h], r=P(20), fill=C_INCLUDE_BG)
-
-        ry = yy + P(39)
-        for lines, rh in rows:
-            centre = ry + rh / 2
-            _check_badge(d, P(129), centre - P(39), P(78))
-            ty2 = centre - (len(lines) * P(55)) / 2 + P(12)
-            for ln in lines:
-                _txt(d, P(252), ty2, ln, f_incl, C_INCLUDE_TXT)
-                ty2 += P(55)
-            ry += rh + P(27)
-        yy += box_h + P(20)
-
+    # Cleaning (production): addon Q&A is stacked in Details — label, then
+    # value, then a divider. No Customer Instructions and no service box.
     if data.addons:
-        _txt(d, P(99), yy, "Service Details", f_incl_h, C_NAVY)
-        yy += P(85)
-        gap = P(28)
         for q, a in data.addons:
+            d.rectangle([PX0, y, PX1, y + P(3)], fill=C_LINE)
+            y += P(36)
             q = "" if q is None else str(q)
             a = "" if a is None else str(a)
-            q_w = _tw(d, q, f_label)
-            a_max = BIN_R - BIN_L - q_w - gap
-            if a_max < P(160):
-                _txt(d, BIN_L, yy, q, f_label, C_INCLUDE_TXT)
-                yy += P(50)
-                a_lines = _wrap(d, a, f_value, BIN_R - BIN_L) or [a]
-            else:
-                _txt(d, BIN_L, yy, q, f_label, C_INCLUDE_TXT)
-                a_lines = _wrap(d, a, f_value, a_max) or [a]
-            ty = yy
-            for ln in a_lines:
-                _txt_right(d, BIN_R, ty, ln, f_value, C_NAVY)
-                ty += P(50)
-            yy = max(yy + P(66), ty + P(16))
-        yy += P(10)
+            if q:
+                _txt(d, P(45), y, q, f_label, C_INCLUDE_TXT)
+                y += P(56)
+            for ln in _wrap(d, a, f_value, PX1 - PX0) or ([a] if a else []):
+                _txt(d, PX0, y, ln, f_value, C_NAVY)
+                y += P(52)
+        yy = y + P(40)
+    else:
+        d.rectangle([PX0, y, PX1, y + P(3)], fill=C_LINE)
+        y += P(39)
+        _txt(d, P(45), y, "Customer Instructions", f_label, C_INCLUDE_TXT)
+        y += P(63)
+        for ln in instr_lines:
+            _txt(d, PX0, y, ln, f_instr, C_NAVY)
+            y += P(59)
 
-    yy += P(60)
-    _rr(d, [BX0, box_y0, BX1, yy], r=P(26), outline=C_BOX_BORDER, width=max(1, int(P(1.5))))
+        # ── Service box (handyman / non-cleaning) ────────────────
+        box_y0 = y + P(49)
+        BX0, BX1 = P(43), P(1036)
+        BIN_L, BIN_R = P(98), P(982)
+
+        yy = box_y0 + P(83)
+        for ln in _wrap(d, data.clean_service_name, f_service, BIN_R - BIN_L):
+            _txt(d, BIN_L, yy, ln, f_service, C_NAVY)
+            yy += P(66)
+        yy += P(48)
+        d.rectangle([BIN_L, yy, BIN_R, yy + P(3)], fill=C_CARD_DIVIDER)
+        yy += P(60)
+
+        if data.includes:
+            _txt(d, P(99), yy, "Service Includes", f_incl_h, C_NAVY)
+            yy += P(85)
+            rows = []
+            text_w = BIN_R - P(252) - P(20)
+            for item in data.includes:
+                lines = _wrap(d, item, f_incl, text_w)
+                rows.append((lines, len(lines) * P(55) + P(24)))
+            box_h = P(78) + sum(h for _, h in rows) + P(27) * (len(rows) - 1)
+            _rr(d, [P(97), yy, P(982), yy + box_h], r=P(20), fill=C_INCLUDE_BG)
+
+            ry = yy + P(39)
+            for lines, rh in rows:
+                centre = ry + rh / 2
+                _check_badge(d, P(129), centre - P(39), P(78))
+                ty2 = centre - (len(lines) * P(55)) / 2 + P(12)
+                for ln in lines:
+                    _txt(d, P(252), ty2, ln, f_incl, C_INCLUDE_TXT)
+                    ty2 += P(55)
+                ry += rh + P(27)
+            yy += box_h + P(20)
+
+        yy += P(60)
+        _rr(d, [BX0, box_y0, BX1, yy], r=P(26), outline=C_BOX_BORDER, width=max(1, int(P(1.5))))
 
     # ── Output ───────────────────────────────────────────────────
     bottom = int(min(yy + P(BOTTOM_MARGIN), P(_SCRATCH_H)))
@@ -543,8 +528,8 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
         final_h = max(1, int(round(bottom / SS)))
         canvas = img.crop((0, 0, W, bottom))
     else:
-        # 1080x2400 phone frame. Grow only when cleaning Service Details
-        # (Deep Cleaning, etc.) would otherwise be clipped off the bottom.
+        # 1080x2400 phone frame. Grow if a long cleaning Details list
+        # would otherwise be clipped off the bottom.
         min_h = int(P(REF_H))
         if data.addons and bottom > min_h:
             frame_h = bottom
