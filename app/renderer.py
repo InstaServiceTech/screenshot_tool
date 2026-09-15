@@ -452,29 +452,30 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
 
     # ── Details ──────────────────────────────────────────────────
     PX0, PX1 = P(44), P(1036)
-    y = card_y1 + P(107)
+    y = card_y1 + P(88)
     _txt(d, PX0, y, "Details", f_details, C_NAVY)
-    y += P(98)
+    y += P(72)
     _txt(d, P(45), y, "Customer:" if data.addons else "Customer", f_label, C_INCLUDE_TXT)
-    y += P(56)
+    y += P(44)
     _txt(d, PX0, y, data.customer_name, f_value, C_NAVY)
-    y += P(52)
+    y += P(40)
 
     # Cleaning (production): addon Q&A is stacked in Details — label, then
     # value, then a divider. No Customer Instructions and no service box.
     if data.addons:
         for q, a in data.addons:
-            d.rectangle([PX0, y, PX1, y + P(3)], fill=C_LINE)
-            y += P(36)
+            d.rectangle([PX0, y, PX1, y + P(2)], fill=C_LINE)
+            y += P(28)
             q = "" if q is None else str(q)
             a = "" if a is None else str(a)
             if q:
                 _txt(d, P(45), y, q, f_label, C_INCLUDE_TXT)
-                y += P(56)
+                y += P(44)
             for ln in _wrap(d, a, f_value, PX1 - PX0) or ([a] if a else []):
                 _txt(d, PX0, y, ln, f_value, C_NAVY)
-                y += P(52)
-        yy = y + P(40)
+                y += P(40)
+        # Keep the last field (Cleaning Type / Deep Cleaning) above the home pill.
+        yy = y + P(80)
     else:
         d.rectangle([PX0, y, PX1, y + P(3)], fill=C_LINE)
         y += P(39)
@@ -528,10 +529,10 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
         final_h = max(1, int(round(bottom / SS)))
         canvas = img.crop((0, 0, W, bottom))
     else:
-        # 1080x2400 phone frame. Grow if a long cleaning Details list
-        # would otherwise be clipped off the bottom.
+        # 1080x2400 phone frame. Grow so cleaning Details (sqft, half baths,
+        # Deep Cleaning, etc.) are never clipped into empty space at the bottom.
         min_h = int(P(REF_H))
-        if data.addons and bottom > min_h:
+        if bottom > min_h:
             frame_h = bottom
             final_h = int(round(frame_h / SS))
         else:

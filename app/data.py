@@ -10,6 +10,7 @@ import json
 import math
 import os
 import random
+import re
 from datetime import datetime, timedelta
 from typing import List, Tuple
 
@@ -167,20 +168,32 @@ def _amount(v) -> str:
     return s
 
 
-def _addons(row) -> List[Tuple[str, str]]:
-    """Read AddOn1..AddOn12 (and any higher numbered pair present on the row)."""
-    pairs = []
-    keys = set()
+_ADDON_Q = re.compile(r"^addon\s*(\d+)$", re.I)
+_ADDON_A = re.compile(r"^addon\s*(\d+)\s*value$", re.I)
+
+
+def _row_keys(row):
     if hasattr(row, "index"):
-        keys = {str(c) for c in row.index}
-    elif hasattr(row, "keys"):
-        keys = {str(c) for c in row.keys()}
-    n = 12
-    while f"AddOn{n + 1}" in keys or f"AddOn{n + 1}Value" in keys:
-        n += 1
-    for i in range(1, n + 1):
-        q = _clean(row.get(f"AddOn{i}"))
-        a = _clean(row.get(f"AddOn{i}Value"))
+        return [str(c) for c in row.index]
+    if hasattr(row, "keys"):
+        return [str(c) for c in row.keys()]
+    return []
+
+
+def _addons(row) -> List[Tuple[str, str]]:
+    """Read every AddOnN / AddOnNValue pair on the row (any count, spacing, case)."""
+    qs, ans = {}, {}
+    for key in _row_keys(row):
+        name = key.strip()
+        mq, ma = _ADDON_Q.match(name), _ADDON_A.match(name)
+        if mq:
+            qs[int(mq.group(1))] = key
+        elif ma:
+            ans[int(ma.group(1))] = key
+    pairs = []
+    for i in sorted(set(qs) | set(ans)):
+        q = _clean(row.get(qs.get(i, f"AddOn{i}")))
+        a = _clean(row.get(ans.get(i, f"AddOn{i}Value")))
         if a.endswith(".0"):
             a = a[:-2]
         if q or a:
@@ -198,7 +211,8 @@ def row_to_record(row, includes_map: dict | None = None,
     service_name = _clean(g("ServiceName"))
     booking = _clean(g("BookingDateTime")) or default_booking
     category = _clean(g("Category")).lower()
-    addons = _addons(row) if category == "cleaning" else []
+    is_cleaning = "cleaning" in category or "cleaning" in service_name.lower()
+    addons = _addons(row) if is_cleaning else []
 
     return ServiceRecord(
         amount=_amount(g("ServiceAmount")),
