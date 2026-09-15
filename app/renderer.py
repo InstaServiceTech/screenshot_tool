@@ -474,8 +474,9 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
             for ln in _wrap(d, a, f_value, PX1 - PX0) or ([a] if a else []):
                 _txt(d, PX0, y, ln, f_value, C_NAVY)
                 y += P(40)
-        # Keep the last field (Cleaning Type / Deep Cleaning) above the home pill.
-        yy = y + P(80)
+        # Keep the last field above the home pill; crop the frame to content
+        # so cleaning shots don't leave a tall empty phone bottom.
+        yy = y + P(56)
     else:
         d.rectangle([PX0, y, PX1, y + P(3)], fill=C_LINE)
         y += P(39)
@@ -529,10 +530,13 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
         final_h = max(1, int(round(bottom / SS)))
         canvas = img.crop((0, 0, W, bottom))
     else:
-        # 1080x2400 phone frame. Grow so cleaning Details (sqft, half baths,
-        # Deep Cleaning, etc.) are never clipped into empty space at the bottom.
         min_h = int(P(REF_H))
-        if bottom > min_h:
+        if data.addons:
+            # Crop to the last Details row — cleaning has no Service Includes
+            # card, so a fixed 2400 frame was mostly empty white.
+            frame_h = max(bottom, int(P(400)))
+            final_h = max(1, int(round(frame_h / SS)))
+        elif bottom > min_h:
             frame_h = bottom
             final_h = int(round(frame_h / SS))
         else:
