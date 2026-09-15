@@ -454,26 +454,26 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
     PX0, PX1 = P(44), P(1036)
     y = card_y1 + P(88)
     _txt(d, PX0, y, "Details", f_details, C_NAVY)
-    y += P(72)
+    y += P(78)
     _txt(d, P(45), y, "Customer:" if data.addons else "Customer", f_label, C_INCLUDE_TXT)
-    y += P(44)
+    y += P(50)
     _txt(d, PX0, y, data.customer_name, f_value, C_NAVY)
-    y += P(40)
+    y += P(48)
 
     # Cleaning (production): addon Q&A is stacked in Details — label, then
     # value, then a divider. No Customer Instructions and no service box.
     if data.addons:
         for q, a in data.addons:
             d.rectangle([PX0, y, PX1, y + P(2)], fill=C_LINE)
-            y += P(28)
+            y += P(36)
             q = "" if q is None else str(q)
             a = "" if a is None else str(a)
             if q:
                 _txt(d, P(45), y, q, f_label, C_INCLUDE_TXT)
-                y += P(44)
+                y += P(50)
             for ln in _wrap(d, a, f_value, PX1 - PX0) or ([a] if a else []):
                 _txt(d, PX0, y, ln, f_value, C_NAVY)
-                y += P(40)
+                y += P(48)
         # Keep the last field above the home pill; crop the frame to content
         # so cleaning shots don't leave a tall empty phone bottom.
         yy = y + P(56)
