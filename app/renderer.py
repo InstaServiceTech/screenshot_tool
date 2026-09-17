@@ -455,7 +455,7 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
     y = card_y1 + P(88)
     _txt(d, PX0, y, "Details", f_details, C_NAVY)
     y += P(78)
-    _txt(d, P(45), y, "Customer:" if data.addons else "Customer", f_label, C_INCLUDE_TXT)
+    _txt(d, P(45), y, "Customer:", f_label, C_INCLUDE_TXT)
     y += P(50)
     _txt(d, PX0, y, data.customer_name, f_value, C_NAVY)
     y += P(48)
@@ -480,7 +480,7 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
     else:
         d.rectangle([PX0, y, PX1, y + P(3)], fill=C_LINE)
         y += P(39)
-        _txt(d, P(45), y, "Customer Instructions", f_label, C_INCLUDE_TXT)
+        _txt(d, P(45), y, "Customer Instructions:", f_label, C_INCLUDE_TXT)
         y += P(63)
         for ln in instr_lines:
             _txt(d, PX0, y, ln, f_instr, C_NAVY)
@@ -531,9 +531,9 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
         canvas = img.crop((0, 0, W, bottom))
     else:
         min_h = int(P(REF_H))
-        if data.addons:
-            # Crop to the last Details row — cleaning has no Service Includes
-            # card, so a fixed 2400 frame was mostly empty white.
+        if data.addons or "cleaning" in data.clean_service_name.lower():
+            # Crop to the last row so cleaning shots don't leave a tall empty
+            # phone bottom (Full House Q&A or Hourly Service Includes).
             frame_h = max(bottom, int(P(400)))
             final_h = max(1, int(round(frame_h / SS)))
         elif bottom > min_h:

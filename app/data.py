@@ -211,8 +211,9 @@ def row_to_record(row, includes_map: dict | None = None,
     service_name = _clean(g("ServiceName"))
     booking = _clean(g("BookingDateTime")) or default_booking
     category = _clean(g("Category")).lower()
-    is_cleaning = "cleaning" in category or "cleaning" in service_name.lower()
-    addons = _addons(row) if is_cleaning else []
+    # Full House Cleaning uses stacked Q&A in Details. Hourly Cleaning (and
+    # other services) keep Customer Instructions + Service Includes.
+    addons = _addons(row) if "full house cleaning" in service_name.lower() else []
 
     return ServiceRecord(
         amount=_amount(g("ServiceAmount")),
