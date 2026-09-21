@@ -31,7 +31,7 @@ from auth import current_user, load_users, verify_password
 from data import (DEFAULT_BOOKING, DEFAULT_BOOKING_TIME, REQUIRED_COLUMNS,
                   clean_file_name, default_booking_date, format_booking,
                   includes_for, load_includes, read_excel, row_to_record,
-                  safe_folder, today_str)
+                  safe_folder, staggered_booking_times, today_str)
 from renderer import ServiceRecord, render_service_screen
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -345,8 +345,7 @@ def upload():
                            total=len(df), cities=cities,
                            filename=os.path.basename(xlsx_path),
                            has_booking_col=has_booking_col,
-                           min_date=today_str(), default_date=default_booking_date(),
-                           default_time=DEFAULT_BOOKING_TIME)
+                           min_date=today_str(), default_date=default_booking_date())
 
 
 # ── Generate all screenshots -> zip ───────────────────────────────────────────
@@ -362,12 +361,10 @@ def generate(run_id):
         abort(400)
 
     includes_map = load_includes()
-    # Optional batch-wide booking date/time chosen on the preview page. Applied to
-    # every row that does not carry its own BookingDateTime column value.
-    batch_booking = DEFAULT_BOOKING
-    bd = request.form.get("booking_date", "").strip()
-    if bd:
-        batch_booking = format_booking(bd, request.form.get("booking_time", DEFAULT_BOOKING_TIME))
+    # Date from the preview page; time is a random 30-minute slot between 9 AM
+    # and 3 PM for each row that does not already have BookingDateTime.
+    bd = request.form.get("booking_date", "").strip() or default_booking_date()
+    bookings = iter(staggered_booking_times(bd, len(df)))
 
     shots_dir = os.path.join(rd, "screenshots")
     shutil.rmtree(shots_dir, ignore_errors=True)
@@ -375,7 +372,7 @@ def generate(run_id):
 
     results = []
     for _, row in df.iterrows():
-        rec = row_to_record(row, includes_map, default_booking=batch_booking)
+        rec = row_to_record(row, includes_map, default_booking=next(bookings))
         if not rec.service_name or not rec.city:
             continue
         city_dir = os.path.join(shots_dir, safe_folder(rec.city))

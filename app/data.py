@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import math
 import os
+import random
+import re
 from datetime import datetime, timedelta
 from typing import List, Tuple
 
@@ -29,6 +31,8 @@ OPTIONAL_COLUMNS = [
     "Category", "BookingDateTime",
     "AddOn1", "AddOn1Value", "AddOn2", "AddOn2Value",
     "AddOn3", "AddOn3Value", "AddOn4", "AddOn4Value",
+    "AddOn5", "AddOn5Value", "AddOn6", "AddOn6Value",
+    "AddOn7", "AddOn7Value", "AddOn8", "AddOn8Value",
 ]
 
 DEFAULT_BOOKING = "Mon, Aug 24, 2026, 10:30 AM"
@@ -45,6 +49,50 @@ def default_booking_date() -> str:
 
 
 DEFAULT_BOOKING_TIME = "10:30"
+
+# Excel batch: random half-hour slots from 9:00 AM through 3:00 PM (inclusive).
+BOOKING_SLOT_START_MINUTES = 9 * 60
+BOOKING_SLOT_END_MINUTES = 15 * 60
+BOOKING_SLOT_STEP_MINUTES = 30
+
+
+def booking_time_slots() -> List[str]:
+    """Half-hour clock times from 09:00 through 15:00."""
+    slots = []
+    minutes = BOOKING_SLOT_START_MINUTES
+    while minutes <= BOOKING_SLOT_END_MINUTES:
+        h, m = divmod(minutes, 60)
+        slots.append(f"{h:02d}:{m:02d}")
+        minutes += BOOKING_SLOT_STEP_MINUTES
+    return slots
+
+
+def staggered_booking_times(date_str: str, count: int) -> List[str]:
+    """
+    One booking datetime per row: shuffled 30-minute slots between 9 AM and 3 PM.
+    Extra rows wrap to the next day and start again at 9:00.
+    """
+    if count <= 0:
+        return []
+    date_str = (date_str or "").strip() or default_booking_date()
+    try:
+        day = datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        day = datetime.strptime(default_booking_date(), "%Y-%m-%d")
+
+    slots = booking_time_slots()
+    out: List[str] = []
+    remaining = count
+    while remaining > 0:
+        day_slots = slots[:]
+        random.shuffle(day_slots)
+        take = min(remaining, len(day_slots))
+        day_key = day.strftime("%Y-%m-%d")
+        for t in day_slots[:take]:
+            out.append(format_booking(day_key, t))
+        remaining -= take
+        day += timedelta(days=1)
+    return out
 
 
 def format_booking(date_str: str, time_str: str = DEFAULT_BOOKING_TIME) -> str:
@@ -120,16 +168,84 @@ def _amount(v) -> str:
     return s
 
 
+_ADDON_Q = re.compile(r"^addon\s*(\d+)$", re.I)
+_ADDON_A = re.compile(r"^addon\s*(\d+)\s*value$", re.I)
+
+
+def _row_keys(row):
+    if hasattr(row, "index"):
+        return [str(c) for c in row.index]
+    if hasattr(row, "keys"):
+        return [str(c) for c in row.keys()]
+    return []
+
+
 def _addons(row) -> List[Tuple[str, str]]:
+    """Read every AddOnN / AddOnNValue pair on the row (any count, spacing, case)."""
+    qs, ans = {}, {}
+    for key in _row_keys(row):
+        name = key.strip()
+        mq, ma = _ADDON_Q.match(name), _ADDON_A.match(name)
+        if mq:
+            qs[int(mq.group(1))] = key
+        elif ma:
+            ans[int(ma.group(1))] = key
     pairs = []
-    for i in (1, 2, 3, 4):
-        q = _clean(row.get(f"AddOn{i}"))
-        a = _clean(row.get(f"AddOn{i}Value"))
+    for i in sorted(set(qs) | set(ans)):
+        q = _clean(row.get(qs.get(i, f"AddOn{i}")))
+        a = _clean(row.get(ans.get(i, f"AddOn{i}Value")))
         if a.endswith(".0"):
             a = a[:-2]
         if q or a:
             pairs.append((q, a))
     return pairs
+
+
+# Always shown on Full House Cleaning (not read from Excel).
+FULL_HOUSE_STATIC = [
+    ("What is the square footage of the house?", "<=2500"),
+    ("How many Half bathrooms?", "0"),
+]
+
+
+def _pick_addon(pairs: List[Tuple[str, str]], *needles: str, exclude: str | None = None):
+    """Return the first (q, a) whose question contains all needles."""
+    for q, a in pairs:
+        ql = q.lower()
+        if exclude and exclude in ql:
+            continue
+        if all(n in ql for n in needles):
+            return (q, a)
+    return None
+
+
+def _full_house_addons(pairs: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
+    """
+    Production Details order: Pets, bathrooms, bedrooms, then static sqft and
+    half baths, then Cleaning Type. Extra Excel questions keep their values
+    but those two static rows always use the fixed answers.
+    """
+    pets = _pick_addon(pairs, "pet")
+    baths = _pick_addon(pairs, "bath", exclude="half")
+    beds = _pick_addon(pairs, "bed")
+    ctype = _pick_addon(pairs, "cleaning type") or _pick_addon(pairs, "cleaning")
+    used = {p for p in (pets, baths, beds, ctype) if p}
+
+    def is_static_q(q: str) -> bool:
+        ql = q.lower()
+        return "square footage" in ql or "half bath" in ql
+
+    rest = [(q, a) for q, a in pairs if (q, a) not in used and not is_static_q(q)]
+
+    out: List[Tuple[str, str]] = []
+    for item in (pets, baths, beds):
+        if item:
+            out.append(item)
+    out.extend(FULL_HOUSE_STATIC)
+    out.extend(rest)
+    if ctype:
+        out.append(ctype)
+    return out
 
 
 def row_to_record(row, includes_map: dict | None = None,
@@ -142,7 +258,12 @@ def row_to_record(row, includes_map: dict | None = None,
     service_name = _clean(g("ServiceName"))
     booking = _clean(g("BookingDateTime")) or default_booking
     category = _clean(g("Category")).lower()
-    addons = _addons(row) if category == "cleaning" else []
+    name_l = service_name.lower()
+    # Full House Cleaning → stacked Q&A in Details.
+    # Hourly Cleaning Service (name or Category) → Customer Instructions + Service Includes.
+    is_hourly = "hourly" in name_l or "hourly" in category
+    is_full_house = "full house cleaning" in name_l and not is_hourly
+    addons = _full_house_addons(_addons(row)) if is_full_house else []
 
     return ServiceRecord(
         amount=_amount(g("ServiceAmount")),

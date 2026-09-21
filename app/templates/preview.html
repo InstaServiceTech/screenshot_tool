@@ -17,10 +17,9 @@
     </div>
     {% if total > rows|length %}<p class="muted">Showing first {{ rows|length }} rows; all {{ total }} will be generated.</p>{% endif %}
     <form action="{{ url_for('generate', run_id=run_id) }}" method="post" style="margin-top:16px">
-      <label>Booking Date &amp; Time for all rows <span class="muted">(today or later{% if has_booking_col %}; rows with their own BookingDateTime keep it{% endif %})</span></label>
-      <div class="row2" style="max-width:360px">
+      <label>Booking Date <span class="muted">(today or later; each screenshot gets a random time between 9 AM and 3 PM, 30 minutes apart{% if has_booking_col %}; rows with their own BookingDateTime keep it{% endif %})</span></label>
+      <div style="max-width:180px">
         <input type="date" name="booking_date" value="{{ default_date }}" min="{{ min_date }}">
-        <input type="time" name="booking_time" value="{{ default_time }}">
       </div>
       <div style="margin-top:16px">
         <button class="btn" type="submit">Generate Screenshots</button>
