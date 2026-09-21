@@ -134,6 +134,7 @@ class ServiceRecord:
     booking_datetime: str = "Mon, Aug 24, 2026, 10:30 AM"
     status_time: str = "11:30"
     includes: List[str] = field(default_factory=list)
+    excludes: List[str] = field(default_factory=list)
     addons: List[Tuple[str, str]] = field(default_factory=list)
 
     @property
@@ -313,6 +314,16 @@ def _check_badge(d, x, y, s, bg=C_CHECK_BG, color=C_CHECK):
     ], fill=color)
 
 
+def _x_badge(d, x, y, s):
+    """Pale red circle + X mark for Service Excludes."""
+    d.ellipse([x, y, x + s, y + s], fill=(252, 228, 228))
+    lw = max(2, int(round(s * 0.12)))
+    p = s * 0.30
+    color = (180, 40, 40)
+    d.line([(x + p, y + p), (x + s - p, y + s - p)], fill=color, width=lw)
+    d.line([(x + s - p, y + p), (x + p, y + s - p)], fill=color, width=lw)
+
+
 def _dollar_badge(d, x, y, s, circle=C_NAVY, glyph=(255, 255, 255)):
     d.ellipse([x, y, x + s, y + s], fill=circle)
     f = _f(True, max(6, int(round(s * 0.60 / SS))))
@@ -462,9 +473,10 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
     _txt(d, PX0, y, data.customer_name, f_value, C_NAVY)
     y += P(48)
 
-    # Cleaning (production): addon Q&A is stacked in Details — label, then
-    # value, then a divider. No Customer Instructions and no service box.
-    if data.addons:
+    # Full House Cleaning: stacked Q&A only (no instructions / includes box).
+    # Hourly Cleaning: instructions + the two extra fields + Service Includes.
+    is_hourly = "hourly" in data.clean_service_name.lower()
+    if data.addons and not is_hourly:
         for q, a in data.addons:
             d.rectangle([PX0, y, PX1, y + P(2)], fill=C_LINE)
             y += P(36)
@@ -476,8 +488,6 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
             for ln in _wrap(d, a, f_value, PX1 - PX0) or ([a] if a else []):
                 _txt(d, PX0, y, ln, f_value, C_NAVY)
                 y += P(48)
-        # Keep the last field above the home pill; crop the frame to content
-        # so cleaning shots don't leave a tall empty phone bottom.
         yy = y + P(56)
     else:
         d.rectangle([PX0, y, PX1, y + P(3)], fill=C_LINE)
@@ -488,7 +498,20 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
             _txt(d, PX0, y, ln, f_instr, C_NAVY)
             y += P(59)
 
-        # ── Service box (handyman / non-cleaning) ────────────────
+        if data.addons:
+            for q, a in data.addons:
+                d.rectangle([PX0, y, PX1, y + P(2)], fill=C_LINE)
+                y += P(36)
+                q = "" if q is None else str(q)
+                a = "" if a is None else str(a)
+                if q:
+                    _txt(d, P(45), y, q, f_label, C_INCLUDE_TXT)
+                    y += P(50)
+                for ln in _wrap(d, a, f_value, PX1 - PX0) or ([a] if a else []):
+                    _txt(d, PX0, y, ln, f_value, C_NAVY)
+                    y += P(48)
+
+        # ── Service box (handyman / hourly / non-cleaning) ───────
         box_y0 = y + P(49)
         BX0, BX1 = P(43), P(1036)
         BIN_L, BIN_R = P(98), P(982)
@@ -506,8 +529,9 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
             yy += P(85)
             rows = []
             text_w = BIN_R - P(252) - P(20)
-            for item in data.includes:
-                lines = _wrap(d, item, f_incl, text_w)
+            items = list(data.includes)[:2] if data.excludes else list(data.includes)
+            for item in items:
+                lines = _wrap(d, item, f_incl, text_w)[:2]
                 rows.append((lines, len(lines) * P(55) + P(24)))
             box_h = P(78) + sum(h for _, h in rows) + P(27) * (len(rows) - 1)
             _rr(d, [P(97), yy, P(982), yy + box_h], r=P(20), fill=C_INCLUDE_BG)
@@ -516,6 +540,28 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
             for lines, rh in rows:
                 centre = ry + rh / 2
                 _check_badge(d, P(129), centre - P(39), P(78))
+                ty2 = centre - (len(lines) * P(55)) / 2 + P(12)
+                for ln in lines:
+                    _txt(d, P(252), ty2, ln, f_incl, C_INCLUDE_TXT)
+                    ty2 += P(55)
+                ry += rh + P(27)
+            yy += box_h + P(20)
+
+        if data.excludes:
+            _txt(d, P(99), yy, "Service Excludes", f_incl_h, C_NAVY)
+            yy += P(85)
+            rows = []
+            text_w = BIN_R - P(252) - P(20)
+            for item in list(data.excludes)[:2]:
+                lines = _wrap(d, item, f_incl, text_w)[:2]
+                rows.append((lines, len(lines) * P(55) + P(24)))
+            box_h = P(78) + sum(h for _, h in rows) + P(27) * (len(rows) - 1)
+            _rr(d, [P(97), yy, P(982), yy + box_h], r=P(20), fill=C_INCLUDE_BG)
+
+            ry = yy + P(39)
+            for lines, rh in rows:
+                centre = ry + rh / 2
+                _x_badge(d, P(129), centre - P(39), P(78))
                 ty2 = centre - (len(lines) * P(55)) / 2 + P(12)
                 for ln in lines:
                     _txt(d, P(252), ty2, ln, f_incl, C_INCLUDE_TXT)
