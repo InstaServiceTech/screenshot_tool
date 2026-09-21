@@ -573,23 +573,15 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
         _rr(d, [BX0, box_y0, BX1, yy], r=P(26), outline=C_BOX_BORDER, width=max(1, int(P(1.5))))
 
     # ── Output ───────────────────────────────────────────────────
-    bottom = int(min(yy + P(BOTTOM_MARGIN), P(_SCRATCH_H)))
+    bottom = int(min(yy + P(BOTTOM_MARGIN) + P(48), P(_SCRATCH_H)))
     if FIT_TO_CONTENT:
         final_h = max(1, int(round(bottom / SS)))
         canvas = img.crop((0, 0, W, bottom))
     else:
-        min_h = int(P(REF_H))
-        if data.addons or "cleaning" in data.clean_service_name.lower():
-            # Crop to the last row so cleaning shots don't leave a tall empty
-            # phone bottom (Full House Q&A or Hourly Service Includes).
-            frame_h = max(bottom, int(P(400)))
-            final_h = max(1, int(round(frame_h / SS)))
-        elif bottom > min_h:
-            frame_h = bottom
-            final_h = int(round(frame_h / SS))
-        else:
-            frame_h = min_h
-            final_h = REF_H
+        # Crop every screenshot to the last row so handyman / plumbing
+        # don't keep a tall empty phone bottom (or clip a long includes list).
+        frame_h = max(bottom, int(P(400)))
+        final_h = max(1, int(round(frame_h / SS)))
         canvas = Image.new("RGB", (W, frame_h), C_BG)
         canvas.paste(img.crop((0, 0, W, min(bottom, frame_h))), (0, 0))
         _home_indicator(ImageDraw.Draw(canvas), W, frame_h)
