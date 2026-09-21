@@ -529,7 +529,7 @@ def render_service_screen(data: ServiceRecord, out_path: str) -> str:
             yy += P(85)
             rows = []
             text_w = BIN_R - P(252) - P(20)
-            items = list(data.includes)[:2] if data.excludes else list(data.includes)
+            items = list(data.includes)[:3]
             for item in items:
                 lines = _wrap(d, item, f_incl, text_w)[:2]
                 rows.append((lines, len(lines) * P(55) + P(24)))

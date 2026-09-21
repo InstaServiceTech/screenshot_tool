@@ -138,14 +138,28 @@ def _include_entry(service_name: str, includes_map: dict | None = None):
             continue
         if _norm_service_key(key) == target:
             return val
+    # Excel names often drop an "s" (Hourly Cleaning service) or extra words.
+    if "hourly" in target and "cleaning" in target:
+        return includes_map.get("Hourly Cleaning Services", includes_map.get("_default", []))
+    if "handyman" in target:
+        return includes_map.get("General Handyman Service", includes_map.get("_default", []))
+    if "plumbing" in target:
+        return includes_map.get("General Plumbing Service", includes_map.get("_default", []))
     return includes_map.get("_default", [])
 
 
 def includes_for(service_name: str, includes_map: dict | None = None) -> List[str]:
     entry = _include_entry(service_name, includes_map)
     if isinstance(entry, dict):
-        return list(entry.get("includes") or [])[:2]
-    return list(entry) if isinstance(entry, list) else []
+        items = list(entry.get("includes") or [])
+    elif isinstance(entry, list):
+        items = list(entry)
+    else:
+        items = []
+    name = _norm_service_key(service_name.split("*")[0])
+    if any(k in name for k in ("handyman", "plumbing", "hourly")):
+        return items[:3]
+    return items
 
 
 def excludes_for(service_name: str, includes_map: dict | None = None) -> List[str]:
