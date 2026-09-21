@@ -150,6 +150,8 @@ def _txt(d, x, y, s, font, fill):
     bb = font.getbbox(s)
     d.text((x - bb[0], y - bb[1]), s, font=font, fill=fill)
 
+def _tw(d, s, f) -> float:
+    return d.textlength("" if s is None else str(s), font=f)
 
 def _tw(d, s, f) -> float:
     return d.textlength("" if s is None else str(s), font=f)
