@@ -24,7 +24,7 @@ jobs:
           host: ${{ secrets.GCE_INSTANCE_IP }}
           username: insta-tech
           key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
-          port: 22
+          port: 5613
           envs: SECRET_KEY,AUTH_USERS
           script: |
             set -e #Exit if command fails
