@@ -21,6 +21,10 @@
       <div style="max-width:180px">
         <input type="date" name="booking_date" value="{{ default_date }}" min="{{ min_date }}">
       </div>
+      <label style="margin-top:14px">Square footage <span class="muted">(Full House &amp; Hourly Cleaning — shown on the screenshot)</span></label>
+      <div style="max-width:180px">
+        <input type="text" name="square_footage" value="{{ default_sqft }}" placeholder="&lt;=2500">
+      </div>
       <div style="margin-top:16px">
         <button class="btn" type="submit">Generate Screenshots</button>
         <a class="btn secondary" href="{{ url_for('index') }}">Cancel</a>

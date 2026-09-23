@@ -9,11 +9,7 @@
   "General Handyman Service": [
     "General home maintenance and repairs",
     "Furniture assembly",
-    "Paint touch-ups",
-    "Carpentry and woodworking",
-    "Drywall repair",
-    "Curtain rod mounting",
-    "Minor plumbing repairs"
+    "Paint touch-ups"
   ],
   "Furniture Assembly": [
     "Assemble and install furniture pieces",
@@ -70,16 +66,7 @@
   "General Plumbing Services": [
     "Diagnosis of plumbing issues (leaks, clogs, noise, pressure)",
     "Minor pipe repairs or tightening",
-    "Toilet, faucet, or shower head adjustments",
-    "Clearing slow drains (non-sewer line)",
-    "Basic fixture replacements (provided by customer)",
-    "Water pressure adjustments",
-    "Caulking or sealing around fixtures",
-    "Drain cleaning service",
-    "Dishwasher drain cleaning",
-    "Recaulk bathtub",
-    "Bathtub faucet repair & replacement",
-    "Outdoor faucet repair"
+    "Toilet, faucet, or shower head adjustments"
   ],
   "Faucet replacement": [
     "Removal of old faucet (kitchen or bathroom)",
@@ -95,10 +82,17 @@
     "Testing of the system post-installation to ensure proper functioning.",
     "Brief tutorial on how to maintain and when to change the filter."
   ],
-  "Hourly Cleaning Services": [
-    "Interior window cleaning (reachable without ladder)",
-    "Cleaning and dusting of baseboards, vents, and door frames"
-  ],
+  "Hourly Cleaning Services": {
+    "includes": [
+      "Interior window cleaning (reachable without ladder)",
+      "Cleaning and dusting of baseboards, vents, and door frames",
+      "Dusting, vacuuming, and mopping within the booked time"
+    ],
+    "excludes": [
+      "Exterior window or high-reach cleaning (ladder required)",
+      "Moving of heavy furniture or lifting over 25 lbs"
+    ]
+  },
   "_default": [
     "Professional, vetted service pro",
     "Upfront pricing",
@@ -107,15 +101,6 @@
   "General Plumbing Service": [
     "Diagnosis of plumbing issues (leaks, clogs, noise, pressure)",
     "Minor pipe repairs or tightening",
-    "Toilet, faucet, or shower head adjustments",
-    "Clearing slow drains (non-sewer line)",
-    "Basic fixture replacements (provided by customer)",
-    "Water pressure adjustments",
-    "Caulking or sealing around fixtures",
-    "Drain cleaning service",
-    "Dishwasher drain cleaning",
-    "Recaulk bathtub",
-    "Bathtub faucet repair & replacement",
-    "Outdoor faucet repair"
+    "Toilet, faucet, or shower head adjustments"
   ]
 }

@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 
 from auth import current_user, load_users, verify_password
 from data import (DEFAULT_BOOKING, DEFAULT_BOOKING_TIME, REQUIRED_COLUMNS,
-                  clean_file_name, default_booking_date, format_booking,
+                  SQFT_DEFAULT, clean_file_name, default_booking_date, format_booking,
                   includes_for, load_includes, read_excel, row_to_record,
                   safe_folder, staggered_booking_times, today_str)
 from renderer import ServiceRecord, render_service_screen
@@ -345,7 +345,8 @@ def upload():
                            total=len(df), cities=cities,
                            filename=os.path.basename(xlsx_path),
                            has_booking_col=has_booking_col,
-                           min_date=today_str(), default_date=default_booking_date())
+                           min_date=today_str(), default_date=default_booking_date(),
+                           default_sqft=SQFT_DEFAULT)
 
 
 # ── Generate all screenshots -> zip ───────────────────────────────────────────
@@ -365,6 +366,7 @@ def generate(run_id):
     # and 3 PM for each row that does not already have BookingDateTime.
     bd = request.form.get("booking_date", "").strip() or default_booking_date()
     bookings = iter(staggered_booking_times(bd, len(df)))
+    sqft = request.form.get("square_footage", "").strip()
 
     shots_dir = os.path.join(rd, "screenshots")
     shutil.rmtree(shots_dir, ignore_errors=True)
@@ -372,7 +374,8 @@ def generate(run_id):
 
     results = []
     for _, row in df.iterrows():
-        rec = row_to_record(row, includes_map, default_booking=next(bookings))
+        rec = row_to_record(row, includes_map, default_booking=next(bookings),
+                            square_footage=sqft)
         if not rec.service_name or not rec.city:
             continue
         city_dir = os.path.join(shots_dir, safe_folder(rec.city))

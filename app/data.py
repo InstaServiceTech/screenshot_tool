@@ -122,27 +122,51 @@ def load_includes() -> dict:
         return json.load(f)
 
 
-def includes_for(service_name: str, includes_map: dict | None = None) -> List[str]:
+def _norm_service_key(s: str) -> str:
+    return " ".join(str(s).lower().split())
+
+
+def _include_entry(service_name: str, includes_map: dict | None = None):
+    """Raw JSON entry for a service (list of includes, or {includes, excludes})."""
     includes_map = includes_map or load_includes()
     clean = service_name.split("*")[0].strip()
-
-    # 1) exact match
     if clean in includes_map:
         return includes_map[clean]
-
-    # 2) case-insensitive / whitespace-tolerant match against the app's names
-    def norm(s: str) -> str:
-        return " ".join(str(s).lower().split())
-
-    target = norm(clean)
+    target = _norm_service_key(clean)
     for key, val in includes_map.items():
         if key.startswith("_"):
             continue
-        if norm(key) == target:
+        if _norm_service_key(key) == target:
             return val
-
-    # 3) fall back to the default list
+    # Excel names often drop an "s" (Hourly Cleaning service) or extra words.
+    if "hourly" in target and "cleaning" in target:
+        return includes_map.get("Hourly Cleaning Services", includes_map.get("_default", []))
+    if "handyman" in target:
+        return includes_map.get("General Handyman Service", includes_map.get("_default", []))
+    if "plumbing" in target:
+        return includes_map.get("General Plumbing Service", includes_map.get("_default", []))
     return includes_map.get("_default", [])
+
+
+def includes_for(service_name: str, includes_map: dict | None = None) -> List[str]:
+    entry = _include_entry(service_name, includes_map)
+    if isinstance(entry, dict):
+        items = list(entry.get("includes") or [])
+    elif isinstance(entry, list):
+        items = list(entry)
+    else:
+        items = []
+    name = _norm_service_key(service_name.split("*")[0])
+    if any(k in name for k in ("handyman", "plumbing", "hourly")):
+        return items[:3]
+    return items
+
+
+def excludes_for(service_name: str, includes_map: dict | None = None) -> List[str]:
+    entry = _include_entry(service_name, includes_map)
+    if isinstance(entry, dict):
+        return list(entry.get("excludes") or [])[:2]
+    return []
 
 
 def _clean(v) -> str:
@@ -201,11 +225,12 @@ def _addons(row) -> List[Tuple[str, str]]:
     return pairs
 
 
-# Always shown on Full House Cleaning (not read from Excel).
-FULL_HOUSE_STATIC = [
-    ("What is the square footage of the house?", "<=2500"),
-    ("How many Half bathrooms?", "0"),
-]
+# Half bathrooms is always fixed. Square footage defaults to <=2500 but
+# uses the Excel AddOn value when that question is present.
+SQFT_LABEL = "What is the square footage of the house?"
+SQFT_DEFAULT = "<=2500"
+HALF_BATH_LABEL = "How many Half bathrooms?"
+HALF_BATH_VALUE = "0"
 
 
 def _pick_addon(pairs: List[Tuple[str, str]], *needles: str, exclude: str | None = None):
@@ -219,11 +244,26 @@ def _pick_addon(pairs: List[Tuple[str, str]], *needles: str, exclude: str | None
     return None
 
 
-def _full_house_addons(pairs: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
+def _extra_house_fields(pairs: List[Tuple[str, str]],
+                       sqft_override: str | None = None) -> List[Tuple[str, str]]:
+    """The two extra Details rows: editable sqft, static half baths."""
+    override = (sqft_override or "").strip()
+    if override:
+        sqft_val = override
+    else:
+        sqft = _pick_addon(pairs, "square footage")
+        sqft_val = sqft[1].strip() if sqft and str(sqft[1]).strip() else SQFT_DEFAULT
+    return [
+        (SQFT_LABEL, sqft_val),
+        (HALF_BATH_LABEL, HALF_BATH_VALUE),
+    ]
+
+
+def _full_house_addons(pairs: List[Tuple[str, str]],
+                      sqft_override: str | None = None) -> List[Tuple[str, str]]:
     """
-    Production Details order: Pets, bathrooms, bedrooms, then static sqft and
-    half baths, then Cleaning Type. Extra Excel questions keep their values
-    but those two static rows always use the fixed answers.
+    Production Details order: Pets, bathrooms, bedrooms, then sqft (Excel or
+    <=2500) and half baths (always 0), then Cleaning Type.
     """
     pets = _pick_addon(pairs, "pet")
     baths = _pick_addon(pairs, "bath", exclude="half")
@@ -231,17 +271,17 @@ def _full_house_addons(pairs: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
     ctype = _pick_addon(pairs, "cleaning type") or _pick_addon(pairs, "cleaning")
     used = {p for p in (pets, baths, beds, ctype) if p}
 
-    def is_static_q(q: str) -> bool:
+    def is_extra_q(q: str) -> bool:
         ql = q.lower()
         return "square footage" in ql or "half bath" in ql
 
-    rest = [(q, a) for q, a in pairs if (q, a) not in used and not is_static_q(q)]
+    rest = [(q, a) for q, a in pairs if (q, a) not in used and not is_extra_q(q)]
 
     out: List[Tuple[str, str]] = []
     for item in (pets, baths, beds):
         if item:
             out.append(item)
-    out.extend(FULL_HOUSE_STATIC)
+    out.extend(_extra_house_fields(pairs, sqft_override))
     out.extend(rest)
     if ctype:
         out.append(ctype)
@@ -249,7 +289,8 @@ def _full_house_addons(pairs: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
 
 
 def row_to_record(row, includes_map: dict | None = None,
-                  default_booking: str = DEFAULT_BOOKING) -> ServiceRecord:
+                  default_booking: str = DEFAULT_BOOKING,
+                  square_footage: str | None = None) -> ServiceRecord:
     """`row` is a dict-like (pandas Series or plain dict)."""
     def g(key, default=""):
         val = row.get(key, default) if hasattr(row, "get") else default
@@ -263,7 +304,13 @@ def row_to_record(row, includes_map: dict | None = None,
     # Hourly Cleaning Service (name or Category) → Customer Instructions + Service Includes.
     is_hourly = "hourly" in name_l or "hourly" in category
     is_full_house = "full house cleaning" in name_l and not is_hourly
-    addons = _full_house_addons(_addons(row)) if is_full_house else []
+    excel_addons = _addons(row)
+    if is_full_house:
+        addons = _full_house_addons(excel_addons, sqft_override=square_footage)
+    elif is_hourly:
+        addons = _extra_house_fields(excel_addons, sqft_override=square_footage)
+    else:
+        addons = []
 
     return ServiceRecord(
         amount=_amount(g("ServiceAmount")),
@@ -275,6 +322,7 @@ def row_to_record(row, includes_map: dict | None = None,
         customer_instructions=_clean(g("CustomerInstructions")),
         booking_datetime=booking,
         includes=includes_for(service_name, includes_map),
+        excludes=excludes_for(service_name, includes_map),
         addons=addons,
     )
 
